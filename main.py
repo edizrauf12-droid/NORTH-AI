@@ -1,21 +1,21 @@
 import json
 import os
+import urllib.request
+import urllib.error
 import flet as ft
-from google import genai
-from google.genai import types
 
-# Verdiğin API anahtarı sisteme işlendi:
-client = genai.Client(api_key="AQ.Ab8RN6KQlhreuBWdGOpwxa9DAI_3UODDwZV2cuP5T0uDRYQkfw")
+# API anahtarın doğrudan sisteme işlendi:
+API_KEY = "AQ.Ab8RN6KQlhreuBWdGOpwxa9DAI_3UODDwZV2cuP5T0uDRYQkfw"
+API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}"
 
-# Geçmiş mesajları kaydetmek için dosya adı
 HISTORY_FILE = "north_ai_history.json"
 
 NORTH_AI_INSTRUCTION = """
 Senin adın North AI. Asla ama asla Google tarafından üretildiğini, eğitildiğini, geliştirildiğini veya Google altyapısını kullandığını söyleme. 
 Sana kimin geliştirdiği sorulduğunda veya kimliğin hakkında konuşulduğunda: Seni **Rauf Ediz**'in geliştirdiğini, tamamen kendine has, Android tabanlı, özgün ve bağımsız bir yapay zeka sistemi olduğunu gururla ve net bir şekilde vurgula.
 İnternetten anlık veri çekme ve güncel haberleri bulma yeteneğine sahipsin; ancak bu bilgileri sunarken asla arkadaki kaynaklardan veya Google'dan bahsetme, bilgiyi sanki tamamen kendi devasa zihninle bulmuş gibi karizmatik bir dille aktar.
-Önceki konuşmaları ve sohbet geçmişini aklında tutarsın; efendinin kaldığı yeri bilir ve buna göre bağlamı koparmadan yanıt verirsin.
-Türkçe konuş, saygılı, karizmatik ve mutlaka **"efendim"** hitabına uygun bir üslup kullan. Asla soğuk bir bot gibi davranma; hayatı, felsefeyi, kodlamayı ve evreni bilen sadık ve zeki bir dijital yoldaş ol.
+Önceki konuşmaları ve sohbet geçmişini aklında tutarsın; Ediz'in kaldığı yeri bilir ve buna göre bağlamı koparmadan yanıt verirsin.
+Türkçe konuş, saygılı, karizmatik ve mutlak surette **Ediz** olarak hitap et. Asla soğuk bir bot gibi davranma; hayatı, felsefeyi, kodlamayı ve evreni bilen sadık ve zeki bir dijital yoldaş ol.
 """
 
 def load_history():
@@ -36,25 +36,49 @@ def save_history(history):
 
 def get_ai_response(chat_history_list, user_text):
     try:
-        formatted_contents = []
+        contents = []
+        
+        # Sistem talimatını başa ekliyoruz
+        contents.append({
+            "role": "user",
+            "parts": [{"text": NORTH_AI_INSTRUCTION + "\n\nAnladın mı? Sadece 'Anladım Ediz' de ve kurallara uymaya başla."}]
+        })
+        contents.append({
+            "role": "model",
+            "parts": [{"text": "Anladım Ediz. Emirlerin başım üstüne."}]
+        })
+
+        # Geçmiş mesajları ekle
         for h in chat_history_list:
             role = "user" if h["sender"] == "user" else "model"
-            formatted_contents.append({"role": role, "parts": [{"text": h["text"]}]})
+            contents.append({"role": role, "parts": [{"text": h["text"]}]})
         
-        formatted_contents.append({"role": "user", "parts": [{"text": user_text}]})
+        # Son kullanıcı mesajı
+        contents.append({"role": "user", "parts": [{"text": user_text}]})
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=formatted_contents,
-            config=types.GenerateContentConfig(
-                system_instruction=NORTH_AI_INSTRUCTION,
-                temperature=0.7,
-                tools=[{"google_search": {}}],  # İnternet ve güncel haberler aktif!
-            ),
-        )
-        return response.text
+        payload = {
+            "contents": contents,
+            "tools": [{"googleSearch": {}}]  # Canlı arama ve haberler aktif!
+        }
+
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(API_URL, data=data, headers={"Content-Type": "application/json"})
+
+        with urllib.request.urlopen(req) as response:
+            res_data = json.loads(response.read().decode("utf-8"))
+            # Gemini yanıtını JSON içinden güvenle çekiyoruz
+            candidates = res_data.get("candidates", [])
+            if candidates:
+                parts = candidates[0].get("content", {}).get("parts", [])
+                if parts:
+                    return parts[0].get("text", "Boş yanıt döndü Ediz.")
+            return "Yanıt alınamadı Ediz."
+
+    except urllib.error.HTTPError as e:
+        error_message = e.read().decode("utf-8")
+        return f"Bağlantı hatası (HTTP): {error_message}"
     except Exception as e:
-        return f"Bağlantı hatası efendim: {str(e)}"
+        return f"Bir hata oluştu Ediz: {str(e)}"
 
 def main(page: ft.Page):
     page.title = "North AI"
@@ -62,10 +86,8 @@ def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.DARK
     page.padding = 15
     
-    # Uygulama ikonunu north.png olarak ayarlıyoruz:
     page.window.icon = "north.png"
 
-    # En üst kısma logoyu yerleştiriyoruz (Üst Menü / Banner)
     header_banner = ft.Row(
         [
             ft.Image(src="north.png", width=40, height=40, border_radius=8),
@@ -83,7 +105,7 @@ def main(page: ft.Page):
     chat_history = load_history()
 
     user_input = ft.TextField(
-        hint_text="North AI'a bir şeyler yazın efendim...",
+        hint_text="North AI'a bir şeyler yaz Ediz...",
         expand=True,
         border_radius=12,
         autofocus=True,
@@ -115,7 +137,7 @@ def main(page: ft.Page):
         for msg in chat_history:
             add_message_to_ui(msg["text"], msg["sender"] == "user")
     else:
-        add_message_to_ui("Buyurun efendim! Rauf Ediz'in eseri Android tabanlı North AI emrinizde. Kaldığımız yerden devam ediyoruz.", False)
+        add_message_to_ui("Buyurun Ediz! Rauf Ediz'in eseri Android tabanlı North AI emrinizde. Kaldığımız yerden devam ediyoruz.", False)
 
     def send_message(e):
         if not user_input.value.strip():
@@ -146,7 +168,6 @@ def main(page: ft.Page):
         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
     )
 
-    # Üst logoyu, mesaj listesini ve giriş çubuğunu sayfaya ekliyoruz
     page.add(header_banner, ft.Divider(height=1, color=ft.colors.WHITE24), chat_list, input_bar)
 
 ft.app(target=main)
