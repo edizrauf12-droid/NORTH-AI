@@ -486,7 +486,7 @@ def main(page: ft.Page):
                 elif any(w in raw_text for w in ["fıkra", "espiri"]):
                     add_message(COMMANDS["fıkra anlat"])
                     return
-                elif any(w in raw_text for w: ["temizle", "sıfırla", "sil"]):
+                elif any(w in raw_text for w in ["temizle", "sıfırla", "sil"]):
                     chat_history.controls.clear()
                     chat_history.update()
                     return
