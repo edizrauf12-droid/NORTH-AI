@@ -36,10 +36,10 @@ jobs:
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install "flet==0.23.2" wheel setuptools
+        pip install "flet==0.23.2" "serious-python>=0.5.0" wheel setuptools
 
     - name: Build APK
-      run: flet build apk --verbose
+      run: flet build apk
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
