@@ -1,4 +1,4 @@
-name: Build APK
+Name: Build APK
 
 on:
   push:
@@ -36,10 +36,10 @@ jobs:
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install "flet>=0.25.0" pyinstaller wheel setuptools
+        pip install "flet>=0.25.0"
 
-    - name: Package Flet App
-      run: flet pack main.py
+    - name: Build Flet APK
+      run: flet build apk
 
     - name: Upload APK/Artifact
       uses: actions/upload-artifact@v4
@@ -48,5 +48,3 @@ jobs:
         path: |
           build/apk/*.apk
           dist/*
-          *.zip
-          *.tar.gz
