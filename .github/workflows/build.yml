@@ -1,4 +1,4 @@
-name: Build APK
+name: Build Flet APK
 
 on:
   push:
@@ -38,13 +38,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install "flet>=0.25.0"
 
-    - name: Build Flet APK
+    - name: Build APK with Flet
       run: flet build apk
 
-    - name: Upload APK/Artifact
+    - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: app-release
-        path: |
-          build/apk/*.apk
-          dist/*
+        path: build/apk/*.apk
